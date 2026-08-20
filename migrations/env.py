@@ -1,19 +1,17 @@
-import os
+import os  # noqa: I001
 from logging.config import fileConfig
 from pathlib import Path
 
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env")
 
-from sqlalchemy import engine_from_config
+from sqlalchemy import engine_from_config  # noqa: I001
 from sqlalchemy import pool
 from alembic import context
 from app.db import db
-<<<<<<< Updated upstream
-=======
-from app.notifications import models  
+
+from app.notifications import models
 from app.integrations import models  # noqa: F401, F811
->>>>>>> Stashed changes
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
