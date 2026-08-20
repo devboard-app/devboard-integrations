@@ -25,7 +25,7 @@ def mark_all_as_read(user_id: UUID):
     services.mark_all_notifications_read(user_id)
     return jsonify({"message": "All notifications marked as read"})
 
-@notifications_bp.delete("api/notifications/<uuid:notification_id>/")
+@notifications_bp.delete("/api/notifications/<uuid:notification_id>/")
 @jwt_required
 def delete_notification(user_id: UUID, notification_id: UUID):
     success = services.delete_user_notification(notification_id, user_id)
