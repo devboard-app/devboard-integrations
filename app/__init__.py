@@ -2,6 +2,7 @@ from flask import Flask
 
 from app.config import settings
 from app.db import db
+from app.integrations.urls import integrations_bp
 from app.notifications.urls import notifications_bp
 
 
@@ -12,6 +13,7 @@ def create_app():
     db.init_app(app)
 
     app.register_blueprint(notifications_bp)
+    app.register_blueprint(integrations_bp)
     
     @app.get("/health")
     def health():
