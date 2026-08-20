@@ -8,12 +8,24 @@ services:
     environment:
       DB_HOST: devboard-db
       DB_PORT: 5432
-      REDIS_HOST: devboard-redis
     ports:
       - "8005:8000"
     networks:
       - devboard-network
 
+  devboard-integrations-worker:
+    build:
+      context: .
+    container_name: devboard-integrations-worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: devboard-db
+      DB_PORT: 5432
+      REDIS_HOST: devboard-redis
+    command: python -m app.consumer.worker
+    networks:
+      - devboard-network
 networks:
   devboard-network:
     external: true

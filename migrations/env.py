@@ -1,19 +1,21 @@
-import os
+import os  # noqa: I001
 from logging.config import fileConfig
 from pathlib import Path
 
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env")
 
-from sqlalchemy import engine_from_config
+from sqlalchemy import engine_from_config  # noqa: I001
 from sqlalchemy import pool
 from alembic import context
 from app.db import db
+from app.notifications import models  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
+db_url = f"postgresql://{os.environ['DB_USER']}:{os.environ['DB_PASSWORD']}@{os.environ['DB_HOST']}:{os.environ['DB_PORT']}/{os.environ['DB_NAME']}"
+config.set_main_option("sqlalchemy.url", db_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
