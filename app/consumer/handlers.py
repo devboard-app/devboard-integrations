@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from app.notifications.services import create_notification
+from app.webhooks.services import send_discord_notification, send_slack_notification
 
 
 def handle_ticket_assigned(data: dict) -> None:
@@ -33,9 +36,35 @@ def handle_mention(data: dict) -> None:
         link=f"/tickets/{data['ticket_id']}",
     )
 
+def handle_sprint_started(data: dict) -> None:
+    send_discord_notification(
+        team_id=UUID(data["team_id"]),
+        event_type="sprint.started",
+        message=f"🚀 Sprint '{data["sprint_name"]}' has started!",
+    )
+    send_slack_notification(
+        team_id=UUID(data["team_id"]),
+        event_type="sprint.started",
+        text=f"🚀 Sprint '{data["sprint_name"]}' has started!",
+    )
+
+def handle_sprint_completed(data: dict) -> None:
+    send_discord_notification(
+        team_id=UUID(data["team_id"]),
+        event_type="sprint.completed",
+        message=f"✅ Sprint '{data["sprint_name"]}' has been completed!",
+    )
+    send_slack_notification(
+        team_id=UUID(data["team_id"]),
+        event_type="sprint.started",
+        text=f"✅ Sprint '{data["sprint_name"]}' has been completed!",
+    )
+
 HANDLERS ={
     "ticket.assigned": handle_ticket_assigned,
     "ticket.status_changed": handle_status_changed,
     "comment.created": handle_comment_created,
     "comment.mention": handle_mention,
+    "sprint.started": handle_sprint_started,
+    "sprint.completed": handle_sprint_completed,
 }
