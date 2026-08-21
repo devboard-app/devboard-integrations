@@ -16,7 +16,9 @@ def create_integration(team_id: UUID, data: dict) -> TeamIntegration:
     return integration
 
 def update_integration(integration: TeamIntegration, data: dict) -> TeamIntegration:
-    for key, value in data.items():
+    allowed_fields = ['slack_webhook_url', 'discord_webhook_url', 'email_notifications', 'enabled_triggers']
+    filtered_data = {k: v for k, v in data.items() if k in allowed_fields}
+    for key, value in filtered_data.items():
         if hasattr(integration, key):
             setattr(integration, key, value)
     db.session.commit()
