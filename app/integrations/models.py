@@ -12,7 +12,10 @@ class TeamIntegration(db.Model):
     slack_webhook_url = db.Column(db.Text, nullable=True)
     discord_webhook_url = db.Column(db.Text, nullable=True)
     email_notifications = db.Column(db.Boolean, nullable=False, default=False)
-    enabled_triggers = db.Column(db.JSON, nullable=False, default=dict)
+    enabled_triggers = db.Column(db.JSON, nullable=False, default=lambda: {
+        "discord": {},
+        "slack": {}
+    })
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
