@@ -4,7 +4,9 @@ from uuid import UUID
 import httpx
 
 from app.integrations.services import get_integration
-
+from app.config import settings
+from app.integrations.repository import get_repo_link_by_github_repo
+from app.redis_client import redis_client
 
 def send_discord_notification(team_id: UUID, event_type: str, message: str):
     integration = get_integration(team_id)
@@ -28,10 +30,53 @@ def extract_ticket_keys(commit_message: str) -> set[str]:
 
 def handle_github_push(payload: dict) -> None:
     repo = payload["repository"]["full_name"]
+    link = get_repo_link_by_github_repo(repo)
     commits = payload.get("commits", [])
+
+    if link is None:
+        return
 
     for commit in commits:
         ticket_keys = set(extract_ticket_keys(commit["message"]))
         for key in ticket_keys:
+            ticket = lookup_ticket(link.project_id, key)
+            if ticket is None:
+                continue
+            actor_id = resolve_author(commit["author"]["email"])
+            if actor_id is None:
+                continue
+            publish_commit_linked(ticket["id"], key, str(link.project_id), actor_id, commit, repo)
 
-            pass
+def lookup_ticket(project_id, key: str) -> dict | None:
+    response = httpx.get(
+        f"{settings.DEVBOARD_WORK_URL}/api/internal/projects/{project_id}/tickets/{key}/",
+        headers={"X-Service-Key": settings.INTERNAL_API_KEY},
+    )
+    if response.status_code == 404:
+        return None
+    response.raise_for_status()
+    return response.json()
+
+def resolve_author(email: str) -> str | None:
+    response = httpx.get(
+        f"{settings.CORE_SERVICE_URL}/api/users/search/",
+        params={"email": email},
+        headers={"X-Service-Key": settings.INTERNAL_API_KEY},
+    )
+    if response.status_code == 404:
+        return None
+    response.raise_for_status()
+    return response.json().get("user_id")
+
+def publish_commit_linked(ticket_id: str, key: str, project_id: str, actor_id: str, commit: dict, repo: str) -> None:
+    redis_client.xadd("devboard:events", {
+        "event": "ticket.commit_linked",
+        "actor_id": actor_id,
+        "ticket_id": ticket_id,
+        "ticket_key": key,
+        "project_id": project_id,
+        "commit_sha": commit["id"],
+        "commit_url": commit["url"],
+        "commit_message": commit["message"],
+        "repo": repo,
+    })
