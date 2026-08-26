@@ -13,6 +13,7 @@ class Settings:
     INTERNAL_API_KEY: str = os.environ["INTERNAL_API_KEY"]
     EMAIL_SERVICE_URL: str = os.environ["EMAIL_SERVICE_URL"]
     DEVBOARD_WORK_URL: str = os.environ["DEVBOARD_WORK_URL"]
+    GITHUB_WEBHOOK_SECRET: str = os.environ["GITHUB_WEBHOOK_SECRET"]
 
 settings = Settings()
 

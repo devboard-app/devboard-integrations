@@ -4,6 +4,7 @@ from app.config import settings
 from app.db import db
 from app.integrations.urls import integrations_bp
 from app.notifications.urls import notifications_bp
+from app.webhooks.urls import webhooks_bp
 
 
 def create_app():
@@ -14,6 +15,7 @@ def create_app():
 
     app.register_blueprint(notifications_bp)
     app.register_blueprint(integrations_bp)
+    app.register_blueprint(webhooks_bp)
     
     @app.get("/health")
     def health():

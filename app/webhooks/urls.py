@@ -1,0 +1,1 @@
+from app.webhooks import webhooks_bp  # noqa: F401
