@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from app.db import db
-from app.integrations.models import TeamIntegration
+from app.integrations.models import TeamIntegration, RepoLink
 
 
 def get_integration_by_team(team_id: UUID) -> TeamIntegration | None:
@@ -24,3 +24,23 @@ def update_integration(integration: TeamIntegration, data: dict) -> TeamIntegrat
     db.session.commit()
     return integration
 
+
+def get_repo_link_by_github_repo(repo: str) -> RepoLink | None:
+    return db.session.execute(
+        db.select(RepoLink).where(RepoLink.github_repo == repo)
+    ).scalars().first()
+
+def get_repo_link_by_id(repo_link_id: UUID) -> RepoLink | None:
+    return db.session.execute(
+        db.select(RepoLink).where(RepoLink.id == repo_link_id)
+    ).scalars().first()
+
+def create_repo_link(team_id: UUID, project_id: UUID, github_repo: str) -> RepoLink:
+    link = RepoLink(team_id=team_id, project_id=project_id, github_repo=github_repo) #type: ignore
+    db.session.add(link)
+    db.session.commit()
+    return link
+
+def delete_repo_link(link: RepoLink) -> None:
+    db.session.delete(link)
+    db.session.commit()
