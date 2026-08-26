@@ -30,3 +30,11 @@ class TeamIntegration(db.Model):
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
         }
+
+class RepoLink(db.Model):
+    __tablename__ = "repo_links"
+    id = db.Column(db.Uuid, primary_key=True, default=uuid.uuid4)
+    team_id = db.Column(db.Uuid, nullable=False)
+    project_id = db.Column(db.Uuid, nullable=False)
+    github_repo = db.Column(db.Text, nullable=False, unique=True)  
+    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))

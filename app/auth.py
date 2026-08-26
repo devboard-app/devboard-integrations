@@ -34,7 +34,7 @@ def require_team_admin(f):
         team_id = kwargs.get('team_id')
         response = httpx.get(
             f"{settings.DEVBOARD_WORK_URL}/api/internal/teams/{team_id}/members/{user_id}/",
-            headers={"X-Internal-Key": settings.INTERNAL_API_KEY}
+            headers={"X-Service-Key": settings.INTERNAL_API_KEY}
         )
         if response.status_code != 200:
             return jsonify({"error": "Forbidden"}), 403
