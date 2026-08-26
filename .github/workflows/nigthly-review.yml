@@ -17,4 +17,4 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: "You are a senior code reviewer. Analyze all commits pushed to the 'dev' branch in the last 24 hours. For each change, look for: bugs and logic errors, security vulnerabilities, unhandled edge cases, and regressions. Be specific — reference file names and line numbers where possible. Group findings by severity (critical, major, minor). If nothing was merged in the last 24 hours, say so and close the issue. Post the full report as a GitHub issue titled 'Nightly Code Review – [date]'."
-          claude_args: '--allowedTools "mcp__github__create_issue,mcp__github__list_commits"'
+          claude_args: '--model claude-opus-4-6 --allowedTools "mcp__github__create_issue,mcp__github__list_commits"'
