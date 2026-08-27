@@ -42,10 +42,8 @@ def handle_github_push(payload: dict) -> None:
             ticket = lookup_ticket(link.project_id, key)
             if ticket is None:
                 continue
-            actor_id = resolve_author(commit["author"]["email"])
-            if actor_id is None:
-                continue
-            publish_commit_linked(ticket["id"], key, str(link.project_id), actor_id, commit, repo)
+            
+            publish_commit_linked(ticket["id"], key, str(link.project_id), commit, repo)
 
 def lookup_ticket(project_id, key: str) -> dict | None:
     response = httpx.get(
@@ -57,21 +55,10 @@ def lookup_ticket(project_id, key: str) -> dict | None:
     response.raise_for_status()
     return response.json()
 
-def resolve_author(email: str) -> str | None:
-    response = httpx.get(
-        f"{settings.CORE_SERVICE_URL}/api/users/search/",
-        params={"email": email},
-        headers={"X-Service-Key": settings.INTERNAL_API_KEY},
-    )
-    if response.status_code == 404:
-        return None
-    response.raise_for_status()
-    return response.json().get("user_id")
-
-def publish_commit_linked(ticket_id: str, key: str, project_id: str, actor_id: str, commit: dict, repo: str) -> None:
+def publish_commit_linked(ticket_id: str, key: str, project_id: str, commit: dict, repo: str) -> None:
     redis_client.xadd("devboard:events", {
         "event": "ticket.commit_linked",
-        "actor_id": actor_id,
+        "actor_id": "system",
         "ticket_id": ticket_id,
         "ticket_key": key,
         "project_id": project_id,
