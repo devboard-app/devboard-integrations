@@ -1,5 +1,7 @@
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
+
 from app.integrations import repository
 from app.integrations.models import RepoLink, TeamIntegration
 
@@ -25,7 +27,10 @@ def create_repo_link(team_id: UUID, project_id: UUID, github_repo: str) -> RepoL
     existing = repository.get_repo_link_by_github_repo(github_repo)
     if existing:
         raise ValueError("This repository is already linked to a project.")
-    return repository.create_repo_link(team_id, project_id, github_repo)
+    try:
+        return repository.create_repo_link(team_id, project_id, github_repo)
+    except IntegrityError:
+        raise ValueError("This repository is already linked to a project.")
 
 def delete_repo_link(team_id: UUID, repo_link_id: UUID) -> None:
     link = repository.get_repo_link_by_id(repo_link_id)
