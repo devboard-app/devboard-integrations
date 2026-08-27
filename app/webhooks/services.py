@@ -16,14 +16,14 @@ def send_discord_notification(team_id: UUID, event_type: str, message: str):
         return
     
     if integration.discord_webhook_url is not None and integration.enabled_triggers.get("discord", {}).get(event_type, False):
-        httpx.post(integration.discord_webhook_url, json={"content": message})
+        httpx.post(integration.discord_webhook_url, json={"content": message}, timeout=3.0)
 
 def send_slack_notification(team_id: UUID, event_type: str, text: str):
     integration = get_integration(team_id)
     if integration is None:
         return
     if integration.slack_webhook_url is not None and integration.enabled_triggers.get("slack", {}).get(event_type, False):
-        httpx.post(integration.slack_webhook_url, json={"text": text})
+        httpx.post(integration.slack_webhook_url, json={"text": text}, timeout=3.0)
 
 TICKET_KEY_PATTERN = re.compile(r"\b([A-Z][A-Z0-9]{1,9}-\d+)\b", re.IGNORECASE)
 
@@ -53,6 +53,7 @@ def lookup_ticket(project_id, key: str) -> dict | None:
     response = httpx.get(
         f"{settings.DEVBOARD_WORK_URL}/api/internal/projects/{project_id}/tickets/{key}/",
         headers={"X-Service-Key": settings.INTERNAL_API_KEY},
+        timeout=3.0,
     )
     if response.status_code == 404:
         return None
