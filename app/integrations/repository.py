@@ -1,7 +1,9 @@
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
+
 from app.db import db
-from app.integrations.models import TeamIntegration, RepoLink
+from app.integrations.models import RepoLink, TeamIntegration
 
 
 def get_integration_by_team(team_id: UUID) -> TeamIntegration | None:
@@ -38,7 +40,11 @@ def get_repo_link_by_id(repo_link_id: UUID) -> RepoLink | None:
 def create_repo_link(team_id: UUID, project_id: UUID, github_repo: str) -> RepoLink:
     link = RepoLink(team_id=team_id, project_id=project_id, github_repo=github_repo) #type: ignore
     db.session.add(link)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        raise
     return link
 
 def delete_repo_link(link: RepoLink) -> None:
