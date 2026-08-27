@@ -1,7 +1,9 @@
 from uuid import UUID
+
 from sqlalchemy.exc import IntegrityError
+
 from app.db import db
-from app.integrations.models import TeamIntegration, RepoLink
+from app.integrations.models import RepoLink, TeamIntegration
 
 
 def get_integration_by_team(team_id: UUID) -> TeamIntegration | None:

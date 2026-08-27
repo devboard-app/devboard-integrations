@@ -1,13 +1,15 @@
+import logging
 import re
 from uuid import UUID
 
 import httpx
 
-from app.integrations.services import get_integration
 from app.config import settings
 from app.integrations.repository import get_repo_link_by_github_repo
+from app.integrations.services import get_integration
 from app.redis_client import redis_client
 
+logger = logging.getLogger(__name__)
 def send_discord_notification(team_id: UUID, event_type: str, message: str):
     integration = get_integration(team_id)
     if integration is None:
@@ -39,11 +41,13 @@ def handle_github_push(payload: dict) -> None:
     for commit in commits:
         ticket_keys = set(extract_ticket_keys(commit["message"]))
         for key in ticket_keys:
-            ticket = lookup_ticket(link.project_id, key)
-            if ticket is None:
-                continue
-            
-            publish_commit_linked(ticket["id"], key, str(link.project_id), commit, repo)
+            try:
+                ticket = lookup_ticket(link.project_id, key)
+                if ticket is None:
+                    continue
+                publish_commit_linked(ticket["id"], key, str(link.project_id), commit, repo)
+            except Exception:
+                logger.exception(f"Failed to link commit {commit["id"]} to {key}")
 
 def lookup_ticket(project_id, key: str) -> dict | None:
     response = httpx.get(
