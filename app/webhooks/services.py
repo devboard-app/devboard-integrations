@@ -9,6 +9,8 @@ from app.integrations.repository import get_repo_link_by_github_repo
 from app.integrations.services import get_integration
 from app.redis_client import redis_client
 
+SYSTEM_ACTOR_ID = "00000000-0000-0000-0000-000000000000"
+
 logger = logging.getLogger(__name__)
 def send_discord_notification(team_id: UUID, event_type: str, message: str):
     integration = get_integration(team_id)
@@ -63,7 +65,7 @@ def lookup_ticket(project_id, key: str) -> dict | None:
 def publish_commit_linked(ticket_id: str, key: str, project_id: str, commit: dict, repo: str) -> None:
     redis_client.xadd("devboard:events", {
         "event": "ticket.commit_linked",
-        "actor_id": "system",
+        "actor_id": SYSTEM_ACTOR_ID,
         "ticket_id": ticket_id,
         "ticket_key": key,
         "project_id": project_id,
