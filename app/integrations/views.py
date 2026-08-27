@@ -55,7 +55,11 @@ def create_repo_link_view(user_id: UUID, team_id: UUID):
     if not project_id or not github_repo:
         return jsonify({"error": "project_id and github_repo are required"}), 400
     try:
-        link = create_repo_link(team_id, UUID(project_id), github_repo)
+        project_uuid = UUID(project_id)
+    except ValueError:
+        return jsonify({"error": "project_id must be a valid UUID"}), 400
+    try:
+        link = create_repo_link(team_id, project_uuid, github_repo)
     except ValueError as e:
         return jsonify({"error": str(e)}), 409
     return jsonify({
