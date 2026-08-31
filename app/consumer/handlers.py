@@ -56,7 +56,7 @@ def handle_sprint_completed(data: dict) -> None:
     )
     send_slack_notification(
         team_id=UUID(data["team_id"]),
-        event_type="sprint.started",
+        event_type="sprint.completed",
         text=f"✅ Sprint '{data["sprint_name"]}' has been completed!",
     )
 

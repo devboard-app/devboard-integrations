@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy.exc import IntegrityError
 
 from app.db import db
-from app.integrations.models import RepoLink, TeamIntegration
+from app.integrations.models import LinkedCommit, RepoLink, TeamIntegration
 
 
 def get_integration_by_team(team_id: UUID) -> TeamIntegration | None:
@@ -50,3 +50,13 @@ def create_repo_link(team_id: UUID, project_id: UUID, github_repo: str) -> RepoL
 def delete_repo_link(link: RepoLink) -> None:
     db.session.delete(link)
     db.session.commit()
+
+
+def record_linked_commit(repo: str, commit_sha: str, ticket_id: UUID) -> bool:
+    db.session.add(LinkedCommit(repo=repo, commit_sha=commit_sha, ticket_id=ticket_id))  # type: ignore
+    try:
+        db.session.commit()
+        return True
+    except IntegrityError:
+        db.session.rollback()
+        return False

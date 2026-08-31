@@ -38,3 +38,16 @@ class RepoLink(db.Model):
     project_id = db.Column(db.Uuid, nullable=False)
     github_repo = db.Column(db.Text, nullable=False, unique=True)  
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+class LinkedCommit(db.Model):
+    __tablename__ = "linked_commits"
+
+    id = db.Column(db.Uuid, primary_key=True, default=uuid.uuid4)
+    repo = db.Column(db.Text, nullable=False)
+    commit_sha = db.Column(db.String(64), nullable=False)
+    ticket_id = db.Column(db.Uuid, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        db.UniqueConstraint("repo", "commit_sha", "ticket_id", name="uq_linked_commits_repo_sha_ticket"),
+    )
