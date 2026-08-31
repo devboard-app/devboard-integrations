@@ -5,7 +5,10 @@ from uuid import UUID
 import httpx
 
 from app.config import settings
-from app.integrations.repository import get_repo_link_by_github_repo
+from app.integrations.repository import (
+    get_repo_link_by_github_repo,
+    record_linked_commit,
+)
 from app.integrations.services import get_integration
 from app.redis_client import redis_client
 
@@ -46,6 +49,9 @@ def handle_github_push(payload: dict) -> None:
             try:
                 ticket = lookup_ticket(link.project_id, key)
                 if ticket is None:
+                    continue
+                if not record_linked_commit(repo, commit["id"], UUID(ticket["id"])):
+                    logger.info(f"Commit {commit['id']} already linked to {key}, skipping")
                     continue
                 publish_commit_linked(ticket["id"], key, str(link.project_id), commit, repo)
             except Exception:
