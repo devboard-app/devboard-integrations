@@ -1,9 +1,22 @@
+from urllib.parse import urlparse
 from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
 
 from app.integrations import repository
 from app.integrations.models import RepoLink, TeamIntegration
+
+ALLOWED_HOSTS = {
+    "slack": {"hooks.slack.com"},
+    "discord": {"discord.com", "discordapp.com"},
+}
+
+def _validate_webhook_url(url: str | None, provider: str) -> None:
+    if url is None:
+        return
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or parsed.hostname not in ALLOWED_HOSTS[provider]:
+        raise ValueError(f"{provider} webhook must be an https URL on {ALLOWED_HOSTS[provider]}")
 
 
 def get_integration(team_id: UUID) -> TeamIntegration | None:
@@ -13,12 +26,16 @@ def create_integration(team_id: UUID, data: dict) -> TeamIntegration:
     existing = repository.get_integration_by_team(team_id)
     if existing:
         raise ValueError("Integration settings already exist for this team.")
+    _validate_webhook_url(data.get("slack_webhook_url"), "slack")
+    _validate_webhook_url(data.get("discord_webhook_url"), "discord")
     return repository.create_integration(team_id, data)
 
 def update_integration(team_id: UUID, data: dict) -> TeamIntegration:
     integration = repository.get_integration_by_team(team_id)
     if integration is None:
         raise ValueError("Integration settings not found for this team.")
+    _validate_webhook_url(data.get("slack_webhook_url"), "slack")
+    _validate_webhook_url(data.get("discord_webhook_url"), "discord")
     return repository.update_integration(integration, data)
 
 
