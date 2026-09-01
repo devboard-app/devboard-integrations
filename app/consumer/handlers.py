@@ -21,8 +21,11 @@ def handle_status_changed(data: dict) -> None:
     )
 
 def handle_comment_created(data: dict) -> None:
+    recipient_id = data.get("recipient_id")
+    if recipient_id is None:
+        return
     create_notification(
-        recipient_id=data["recipient_id"],
+        recipient_id=recipient_id,
         type="comment",
         message=f"New comment on ticket {data['ticket_key']}.",
         link=f"/tickets/{data['ticket_id']}",
@@ -64,7 +67,7 @@ HANDLERS ={
     "ticket.assigned": handle_ticket_assigned,
     "ticket.status_changed": handle_status_changed,
     "comment.created": handle_comment_created,
-    "comment.mention": handle_mention,
+    "comment.mentioned": handle_mention,
     "sprint.started": handle_sprint_started,
     "sprint.completed": handle_sprint_completed,
 }
