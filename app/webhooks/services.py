@@ -9,14 +9,14 @@ from app.integrations.repository import (
     get_repo_link_by_github_repo,
     record_linked_commit,
 )
-from app.integrations.services import get_integration
+from app.integrations.services import get_integration_or_404
 from app.redis_client import redis_client
 
 SYSTEM_ACTOR_ID = "00000000-0000-0000-0000-000000000000"
 
 logger = logging.getLogger(__name__)
 def send_discord_notification(team_id: UUID, event_type: str, message: str):
-    integration = get_integration(team_id)
+    integration = get_integration_or_404(team_id)
     if integration is None:
         return
     
@@ -24,7 +24,7 @@ def send_discord_notification(team_id: UUID, event_type: str, message: str):
         httpx.post(integration.discord_webhook_url, json={"content": message}, timeout=3.0)
 
 def send_slack_notification(team_id: UUID, event_type: str, text: str):
-    integration = get_integration(team_id)
+    integration = get_integration_or_404(team_id)
     if integration is None:
         return
     if integration.slack_webhook_url is not None and integration.enabled_triggers.get("slack", {}).get(event_type, False):

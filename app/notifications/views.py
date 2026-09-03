@@ -23,14 +23,10 @@ def mark_all_as_read(user_id: UUID):
 @jwt_required
 def mark_as_read(user_id: UUID, notification_id: UUID):
     notification = services.mark_notification_read(notification_id, user_id)
-    if notification is None:
-        return jsonify({"error": "Not found"}), 404
     return jsonify(notification.to_dict())
 
 @notifications_bp.delete("/api/notifications/<uuid:notification_id>/")
 @jwt_required
 def delete_notification(user_id: UUID, notification_id: UUID):
-    success = services.delete_user_notification(notification_id, user_id)
-    if not success:
-        return jsonify({"error": "Not found"}), 404
+    services.delete_user_notification(notification_id, user_id)
     return "",204
