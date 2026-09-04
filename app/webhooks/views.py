@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import logging
 
 from flask import request
 
@@ -7,6 +8,7 @@ from app.config import settings
 from app.webhooks import webhooks_bp
 from app.webhooks.services import handle_github_push
 
+logger = logging.getLogger(__name__)
 
 def _verify_signature(raw_body: bytes, signature_header: str | None) -> bool:
     if not signature_header or not signature_header.startswith("sha256="):
@@ -22,6 +24,12 @@ def github_webhook():
     signature = request.headers.get("X-Hub-Signature-256")
 
     if not _verify_signature(raw_body, signature):
+        logger.warning(
+            f"Rejected GitHub webhook: invalid signature "
+            f"(delivery={request.headers.get('X-GitHub-Delivery')}, "
+            f"event={request.headers.get('X-GitHub-Event')}, "
+            f"signature_present={signature is not None})"
+        )
         return {"error": "invalid signature"}, 403
 
     event_type = request.headers.get("X-GitHub-Event")

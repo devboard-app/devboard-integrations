@@ -13,7 +13,6 @@ CONSUMER = "devboard-integrations-1"
 MAX_ATTEMPTS = 3
 RECLAIM_IDLE_MS = 60_000
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def ensure_group():
@@ -24,6 +23,7 @@ def ensure_group():
         logger.info("Consumer group already exists.")
 
 def run():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     flask_app = create_app()
     ensure_group()
     logger.info("Consumer started, waiting for events...")

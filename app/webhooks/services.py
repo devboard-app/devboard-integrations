@@ -48,6 +48,7 @@ def handle_github_push(payload: dict) -> None:
     commits = payload.get("commits", [])
 
     if link is None:
+        logger.info(f"Push for unlinked repo {repo}, ignoring")
         return
 
     for commit in commits:
