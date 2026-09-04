@@ -1,3 +1,5 @@
+import logging
+
 from flask import Flask
 
 from app.config import settings
@@ -9,6 +11,7 @@ from app.webhooks.urls import webhooks_bp
 
 
 def create_app():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     app = Flask(__name__)
     app.config["SQLALCHEMY_DATABASE_URI"] = settings.DATABASE_URL
 
