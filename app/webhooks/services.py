@@ -6,29 +6,36 @@ import httpx
 
 from app.config import settings
 from app.integrations.repository import (
+    get_integration_by_team,
     get_repo_link_by_github_repo,
     record_linked_commit,
 )
-from app.integrations.services import get_integration_or_404
 from app.redis_client import redis_client
 
 SYSTEM_ACTOR_ID = "00000000-0000-0000-0000-000000000000"
 
 logger = logging.getLogger(__name__)
 def send_discord_notification(team_id: UUID, event_type: str, message: str):
-    integration = get_integration_or_404(team_id)
+    integration = get_integration_by_team(team_id)
     if integration is None:
         return
     
     if integration.discord_webhook_url is not None and integration.enabled_triggers.get("discord", {}).get(event_type, False):
-        httpx.post(integration.discord_webhook_url, json={"content": message}, timeout=3.0)
+        try:
+            httpx.post(integration.discord_webhook_url, json={"content": message}, timeout=3.0)
+        except httpx.HTTPError:
+            logger.exception(f"Failed to send Discord notification for team {team_id}")
 
 def send_slack_notification(team_id: UUID, event_type: str, text: str):
-    integration = get_integration_or_404(team_id)
+    integration = get_integration_by_team(team_id)
     if integration is None:
         return
+    
     if integration.slack_webhook_url is not None and integration.enabled_triggers.get("slack", {}).get(event_type, False):
-        httpx.post(integration.slack_webhook_url, json={"text": text}, timeout=3.0)
+        try:
+            httpx.post(integration.slack_webhook_url, json={"text": text}, timeout=3.0)
+        except httpx.HTTPError:
+            logger.exception(f"Failed to send Slack notification for team {team_id}")
 
 TICKET_KEY_PATTERN = re.compile(r"\b([A-Z][A-Z0-9]{1,9}-\d+)\b", re.IGNORECASE)
 
