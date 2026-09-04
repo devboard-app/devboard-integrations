@@ -13,8 +13,11 @@ def handle_ticket_assigned(data: dict) -> None:
     )
 
 def handle_status_changed(data: dict) -> None:
+    recipient_id = data.get("recipient_id")
+    if recipient_id is None:
+        return
     create_notification(
-        recipient_id=data["recipient_id"],
+        recipient_id=recipient_id,
         type="status_change",
         message=f"Ticket {data['ticket_key']} status has changed.",
         link=f"/tickets/{data['ticket_id']}",
