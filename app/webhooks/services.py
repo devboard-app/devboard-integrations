@@ -22,7 +22,8 @@ def send_discord_notification(team_id: UUID, event_type: str, message: str):
     
     if integration.discord_webhook_url is not None and integration.enabled_triggers.get("discord", {}).get(event_type, False):
         try:
-            httpx.post(integration.discord_webhook_url, json={"content": message}, timeout=3.0)
+            response = httpx.post(integration.discord_webhook_url, json={"content": message}, timeout=3.0)
+            response.raise_for_status()
         except httpx.HTTPError:
             logger.exception(f"Failed to send Discord notification for team {team_id}")
 
@@ -33,7 +34,8 @@ def send_slack_notification(team_id: UUID, event_type: str, text: str):
     
     if integration.slack_webhook_url is not None and integration.enabled_triggers.get("slack", {}).get(event_type, False):
         try:
-            httpx.post(integration.slack_webhook_url, json={"text": text}, timeout=3.0)
+            response = httpx.post(integration.slack_webhook_url, json={"text": text}, timeout=3.0)
+            response.raise_for_status()
         except httpx.HTTPError:
             logger.exception(f"Failed to send Slack notification for team {team_id}")
 
