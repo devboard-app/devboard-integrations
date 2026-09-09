@@ -10,3 +10,7 @@ build/
 .ruff_cache/
 instance/
 .vscode
+
+# Local-only unit tests (not committed by choice)
+tests/
+.pytest_cache/
