@@ -9,4 +9,4 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "alembic upgrade head && gunicorn --bind 0.0.0.0:8000 wsgi:app"]
+CMD ["gunicorn --bind 0.0.0.0:8000 wsgi:app"]
