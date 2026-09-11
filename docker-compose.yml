@@ -18,11 +18,20 @@ services:
       - "8005:8000"
     networks:
       - devboard-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
 
   devboard-integrations-worker:
     build:
       context: .
     container_name: devboard-integrations-worker
+    depends_on:
+      devboard-integrations:
+        condition: service_healthy
     restart: unless-stopped
     env_file: .env
     environment:
