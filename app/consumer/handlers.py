@@ -9,7 +9,7 @@ def handle_ticket_assigned(data: dict) -> None:
         recipient_id=data["recipient_id"],
         type="assignment",
         message=f"You have been assigned to ticket {data['ticket_key']}.",
-        link=f"/tickets/{data['ticket_id']}",
+        link=f"/teams/{data['team_id']}/projects/{data['project_id']}/tickets/{data['ticket_id']}",
     )
 
 def handle_status_changed(data: dict) -> None:
@@ -20,7 +20,7 @@ def handle_status_changed(data: dict) -> None:
         recipient_id=recipient_id,
         type="status_change",
         message=f"Ticket {data['ticket_key']} status has changed.",
-        link=f"/tickets/{data['ticket_id']}",
+        link=f"/teams/{data['team_id']}/projects/{data['project_id']}/tickets/{data['ticket_id']}",
     )
 
 def handle_comment_created(data: dict) -> None:
@@ -31,7 +31,7 @@ def handle_comment_created(data: dict) -> None:
         recipient_id=recipient_id,
         type="comment",
         message=f"New comment on ticket {data['ticket_key']}.",
-        link=f"/tickets/{data['ticket_id']}",
+        link=f"/teams/{data['team_id']}/projects/{data['project_id']}/tickets/{data['ticket_id']}",
     )
 
 def handle_mention(data: dict) -> None:
@@ -39,7 +39,7 @@ def handle_mention(data: dict) -> None:
         recipient_id=data["recipient_id"],
         type="mention",
         message=f"You were mentioned in a comment on ticket {data['ticket_key']}.",
-        link=f"/tickets/{data['ticket_id']}",
+        link=f"/teams/{data['team_id']}/projects/{data['project_id']}/tickets/{data['ticket_id']}",
     )
 
 def handle_sprint_started(data: dict) -> None:
