@@ -12,4 +12,4 @@ class FailedEvent(db.Model):
     event_type = db.Column(db.String, nullable=True)
     raw_data = db.Column(db.JSON, nullable=False)
     error = db.Column(db.Text, nullable=False)
-    failed_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    failed_at = db.Column(db.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
