@@ -44,14 +44,21 @@ def create_repo_link_view(user_id: UUID, team_id: UUID):
     data = request.get_json() or {}
     project_id = data.get("project_id")
     github_repo = data.get("github_repo")
-    if not project_id or not github_repo:
-        return jsonify({"error": "project_id and github_repo are required"}), 400
+
+    missing = {}
+    if not project_id:
+        missing["project_id"] = ["This field is required."]
+    if not github_repo:
+        missing["github_repo"] = ["This field is required."]
+    if missing:
+        return jsonify({"detail": next(iter(missing.values()))[0], "errors": missing}), 400
+
     try:
         project_uuid = UUID(project_id)
     except ValueError:
         return jsonify({"error": "project_id must be a valid UUID"}), 400
 
-    link = create_repo_link(team_id, project_uuid, github_repo)
+    link = create_repo_link(team_id, project_uuid, github_repo) # type: ignore
     
     return jsonify({
         "id": str(link.id),
