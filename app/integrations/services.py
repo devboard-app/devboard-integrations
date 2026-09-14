@@ -3,10 +3,12 @@ from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
 
+from app import work_client
 from app.exceptions import (
     IntegrationAlreadyExistsException,
     IntegrationNotFoundException,
     InvalidWebhookUrlException,
+    ProjectNotFoundException,
     RepoLinkAlreadyExistsException,
     RepoLinkNotFoundException,
 )
@@ -48,8 +50,13 @@ def update_integration(team_id: UUID, data: dict) -> TeamIntegration:
     return repository.update_integration(integration, data)
 
 
+def _project_belongs_to_team(team_id: UUID, project_id: UUID) -> bool:
+    response = work_client.get_internal(f"/api/internal/teams{team_id}/projects/{project_id}/")
+    return response is not None and response.status_code == 200
 
 def create_repo_link(team_id: UUID, project_id: UUID, github_repo: str) -> RepoLink:
+    if not _project_belongs_to_team(team_id, project_id):
+        raise ProjectNotFoundException()
     existing = repository.get_repo_link_by_github_repo(github_repo)
     if existing:
         raise RepoLinkAlreadyExistsException()

@@ -1,10 +1,10 @@
 from functools import wraps
 from uuid import UUID
 
-import httpx
 from flask import jsonify, request
 from jose import JWTError, jwt
 
+from app import work_client
 from app.config import settings
 
 
@@ -32,13 +32,8 @@ def require_team_admin(f):
     @wraps(f)
     def decorated(user_id, *args, **kwargs):
         team_id = kwargs.get('team_id')
-        try:
-            response = httpx.get(
-                f"{settings.DEVBOARD_WORK_URL}/api/internal/teams/{team_id}/members/{user_id}/",
-                headers={"X-Service-Key": settings.INTERNAL_API_KEY},
-                timeout=3.0,
-            )
-        except httpx.TransportError:
+        response = work_client.get_internal(f"/api/internal/teams/{team_id}/members/{user_id}/")
+        if response is None:
             return jsonify({"error": "Authorization service unavailable"}), 503
         if response.status_code != 200:
             return jsonify({"error": "Forbidden"}), 403

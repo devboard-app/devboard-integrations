@@ -4,7 +4,7 @@ from uuid import UUID
 
 import httpx
 
-from app.config import settings
+from app import work_client
 from app.integrations.repository import (
     get_integration_by_team,
     get_repo_link_by_github_repo,
@@ -68,11 +68,10 @@ def handle_github_push(payload: dict) -> None:
                 logger.exception(f"Failed to link commit {commit["id"]} to {key}")
 
 def lookup_ticket(project_id, key: str) -> dict | None:
-    response = httpx.get(
-        f"{settings.DEVBOARD_WORK_URL}/api/internal/projects/{project_id}/tickets/{key}/",
-        headers={"X-Service-Key": settings.INTERNAL_API_KEY},
-        timeout=3.0,
-    )
+    response = work_client.get_internal(f"/api/internal/projects/{project_id}/tickets/{key}/")
+    if response is None:
+        logger.warning(f"Work service unavailable looking up ticket {key} in project {project_id}")
+        return None
     if response.status_code == 404:
         return None
     response.raise_for_status()
