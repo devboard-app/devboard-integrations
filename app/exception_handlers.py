@@ -5,6 +5,7 @@ from app.exceptions import (
     IntegrationNotFoundException,
     InvalidWebhookUrlException,
     NotificationNotFoundException,
+    ProjectNotFoundException,
     RepoLinkAlreadyExistsException,
     RepoLinkNotFoundException,
 )
@@ -46,3 +47,7 @@ def register_exception_handlers(app: Flask):
         response = jsonify({"error": "Notification not found"})
         response.status_code = 404
         return response
+
+    @app.errorhandler(ProjectNotFoundException)
+    def handle_project_not_found(e):
+        return jsonify({"error": "Project not found"}), 404

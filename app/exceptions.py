@@ -12,3 +12,5 @@ class RepoLinkNotFoundException(Exception):
     pass
 class NotificationNotFoundException(Exception):
     pass
+class ProjectNotFoundException(Exception):
+    pass
