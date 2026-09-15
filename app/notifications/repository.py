@@ -4,12 +4,17 @@ from app.db import db
 from app.notifications.models import Notification
 
 
-def get_notifications_by_user(recipient_id: UUID) -> list[Notification]:
-    return list(db.session.execute(
-        db.select(Notification)
-        .where(Notification.recipient_id == recipient_id)
+def get_notifications_by_user(recipient_id: UUID, limit: int, offset: int) -> tuple[list[Notification], int]:
+    base_query = db.select(Notification).where(Notification.recipient_id == recipient_id)
+
+    total = db.session.scalar(db.select(db.func.count()).select_from(base_query.subquery()))
+    notifications = list(db.session.execute(
+        base_query
         .order_by(Notification.created_at.desc())
+        .limit(limit)
+        .offset(offset)
     ).scalars().all())
+    return notifications, total
 
 def get_notification_by_id(notification_id: UUID) -> Notification | None:
     return db.session.get(Notification, notification_id)

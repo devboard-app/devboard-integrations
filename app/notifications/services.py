@@ -5,8 +5,8 @@ from app.notifications import repository
 from app.notifications.models import Notification
 
 
-def get_user_notifications(recipient_id: UUID) -> list[Notification]:
-    return repository.get_notifications_by_user(recipient_id)
+def get_user_notifications(recipient_id: UUID, limit: int, offset: int) -> tuple[list[Notification], int]:
+    return repository.get_notifications_by_user(recipient_id, limit, offset)
 
 def mark_notification_read(notification_id: UUID, recipient_id: UUID) -> Notification:
     notification = repository.get_notification_by_id(notification_id)

@@ -1,17 +1,27 @@
 from uuid import UUID
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from app.auth import jwt_required
 from app.notifications import services
 
 notifications_bp = Blueprint("notifications", __name__)
 
+DEFAULT_LIMIT = 20
+MAX_LIMIT = 100
+
 @notifications_bp.get("/api/notifications/")
 @jwt_required
 def get_notifications(user_id: UUID):
-    notifications = services.get_user_notifications(user_id)
-    return jsonify([n.to_dict() for n in notifications])
+    limit = min(request.args.get("limit", DEFAULT_LIMIT, type=int), MAX_LIMIT)
+    offset = request.args.get("offset", 0, type=int)
+    notifications, total = services.get_user_notifications(user_id, limit, offset)
+    return jsonify({
+        "count": total,
+        "limit": limit,
+        "offset": offset,
+        "results": [n.to_dict() for n in notifications],
+        })
 
 @notifications_bp.patch("/api/notifications/read-all/")
 @jwt_required
