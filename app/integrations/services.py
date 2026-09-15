@@ -51,7 +51,7 @@ def update_integration(team_id: UUID, data: dict) -> TeamIntegration:
 
 
 def _project_belongs_to_team(team_id: UUID, project_id: UUID) -> bool:
-    response = work_client.get_internal(f"/api/internal/teams{team_id}/projects/{project_id}/")
+    response = work_client.get_internal(f"/api/internal/teams/{team_id}/projects/{project_id}/")
     return response is not None and response.status_code == 200
 
 def create_repo_link(team_id: UUID, project_id: UUID, github_repo: str) -> RepoLink:
