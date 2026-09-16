@@ -30,14 +30,14 @@ def github_webhook():
             f"event={request.headers.get('X-GitHub-Event')}, "
             f"signature_present={signature is not None})"
         )
-        return {"error": "invalid signature"}, 403
+        return {"detail":"Invalid signature", "errors": None}, 403
 
     event_type = request.headers.get("X-GitHub-Event")
     if event_type != "push":
         return {"status": "ignored"}, 200
     payload = request.get_json(silent=True)
     if payload is None:
-        return {"error": "invalid payload"}, 400
+        return {"detail": "Invalid payload", "errors": None}, 400
 
     handle_github_push(payload)
     return {"status": "ok"}, 200
