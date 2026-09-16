@@ -15,6 +15,13 @@ MAX_LIMIT = 100
 def get_notifications(user_id: UUID):
     limit = min(request.args.get("limit", DEFAULT_LIMIT, type=int), MAX_LIMIT)
     offset = request.args.get("offset", 0, type=int)
+    errors = {}
+    if limit < 0:
+        errors["limit"] = ["Must not be negative."]
+    if offset < 0:
+        errors["offset"] = ["Must not be negative."]
+    if errors:
+        return jsonify({"detail": next(iter(errors.values()))[0], "errors": errors}), 400
     notifications, total = services.get_user_notifications(user_id, limit, offset)
     return jsonify({
         "count": total,
