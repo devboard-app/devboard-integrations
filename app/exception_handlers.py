@@ -60,3 +60,11 @@ def register_exception_handlers(app: Flask):
         response = jsonify({"detail": error.description, "errors": None})
         response.status_code = error.code
         return response
+
+    @app.errorhandler(Exception)
+    def handle_unexpected_exception(error):
+        if isinstance(error, HTTPException):
+            return handle_http_exception(error)
+        response = jsonify({"detail": "Unexpected error occurred", "errors": None})
+        response.status_code = 500
+        return response
