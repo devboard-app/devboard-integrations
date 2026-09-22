@@ -22,7 +22,11 @@ services:
   devboard-integrations-worker:
     build:
       context: .
-    container_name: devboard-integrations-worker
+    # No container_name here, unlike every other service in this file: a
+    # fixed name blocks `docker compose up --scale ...=N`, since Compose
+    # can't give two containers the same name. worker.py reads CONSUMER_NAME
+    # (falling back to the container hostname, unique per replica) instead
+    # of a hardcoded consumer name, so this is now safe to scale.
     restart: unless-stopped
     env_file: .env
     environment:

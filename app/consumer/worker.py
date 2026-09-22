@@ -1,4 +1,6 @@
 import logging
+import os
+import socket
 import time
 
 from app import create_app
@@ -8,7 +10,7 @@ from app.redis_client import redis_client
 
 STREAM = "devboard:events"
 GROUP = "devboard-integrations-group"
-CONSUMER = "devboard-integrations-1"
+CONSUMER = os.environ.get("CONSUMER_NAME", socket.gethostname())
 
 MAX_ATTEMPTS = 3
 RECLAIM_IDLE_MS = 60_000

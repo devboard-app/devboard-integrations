@@ -171,6 +171,5 @@ alembic revision --autogenerate -m "message"
 
 ## Not done yet
 
-- **Only one worker.** The consumer name is fixed. Two workers would break retries.
 - **Retry counting looks at 100 pending messages.** Messages after that are not counted.
 - **One repo, one project.** A GitHub repo can link to only one project across all teams.
