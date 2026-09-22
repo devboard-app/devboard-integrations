@@ -60,16 +60,16 @@ This service has **no user or team tables**. Each time, it asks devboard-work wh
 
 | Event | What happens |
 |---|---|
-| `ticket.assigned` | In-app notification |
-| `ticket.status_changed` | In-app notification |
+| `ticket.assigned` | In-app notification (skipped if you assigned it to yourself) |
+| `ticket.status_changed` | In-app notification (skipped if you changed your own ticket) |
 | `comment.created` | In-app notification |
 | `comment.mentioned` | In-app notification |
 | `sprint.started` | Slack and Discord message |
 | `sprint.completed` | Slack and Discord message |
 
-All other events are acked and dropped on purpose. They are for analytics. So a typo in an event name fails **silently**.
+Every other event devboard-work publishes is either explicitly ignored on purpose (analytics-only events, listed in `IGNORED_EVENTS`) or, if it's genuinely unrecognized — a typo in an event name, or a new event nobody wired up yet — logged as an **error**, not silently dropped.
 
-**A message is sent to Slack or Discord only if** the webhook URL is set **and** that trigger is `true`.
+**A message is sent to Slack or Discord only if** the webhook URL is set **and** that trigger is `true`. A failed send retries up to 3 times with a growing delay (2s, then 4s) for timeouts, connection errors and `5xx`. A `4xx` (bad webhook URL or payload) fails immediately without retrying.
 
 ### If a handler fails
 
@@ -130,10 +130,11 @@ JWT only. You can only see and change your own.
 4. Asks devboard-work if the ticket exists.
 5. Publishes `ticket.commit_linked`.
 
-Two details:
+Three details:
 
 - The event's actor is a **fixed system id**, not the commit author. Anyone can fake a commit author.
 - GitHub sometimes sends the same webhook twice. The table `linked_commits` has a unique key on `(repo, commit_sha, ticket_id)`, so the second one is skipped.
+- If saving the link succeeds but publishing `ticket.commit_linked` fails, the link is undone (row deleted) and the webhook answers `5xx` instead of `200`, so GitHub redelivers it — a redelivery then finds no row and retries cleanly instead of silently skipping.
 
 ---
 
