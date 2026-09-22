@@ -6,6 +6,7 @@ import httpx
 
 from app import work_client
 from app.integrations.repository import (
+    delete_linked_commit,
     get_integration_by_team,
     get_repo_link_by_github_repo,
     record_linked_commit,
@@ -44,15 +45,16 @@ TICKET_KEY_PATTERN = re.compile(r"\b([A-Z][A-Z0-9]{1,9}-\d+)\b", re.IGNORECASE)
 def extract_ticket_keys(commit_message: str) -> set[str]:
     return {key.upper() for key in TICKET_KEY_PATTERN.findall(commit_message)} 
 
-def handle_github_push(payload: dict) -> None:
+def handle_github_push(payload: dict) -> bool:
     repo = payload["repository"]["full_name"]
     link = get_repo_link_by_github_repo(repo)
     commits = payload.get("commits", [])
 
     if link is None:
         logger.info(f"Push for unlinked repo {repo}, ignoring")
-        return
+        return True
 
+    all_linked = True
     for commit in commits:
         ticket_keys = set(extract_ticket_keys(commit["message"]))
         for key in ticket_keys:
@@ -63,9 +65,16 @@ def handle_github_push(payload: dict) -> None:
                 if not record_linked_commit(repo, commit["id"], UUID(ticket["id"])):
                     logger.info(f"Commit {commit['id']} already linked to {key}, skipping")
                     continue
-                publish_commit_linked(ticket["id"], key, str(link.project_id), commit, repo)
+                try:
+                    publish_commit_linked(ticket["id"], key, str(link.project_id), commit, repo)
+                except Exception:
+                    logger.exception(f"Failed to publish commit_linked for {commit['id']} / {key}, undoing link")
+                    delete_linked_commit(repo, commit["id"], UUID(ticket["id"]))
+                    all_linked = False
             except Exception:
                 logger.exception(f"Failed to link commit {commit["id"]} to {key}")
+                all_linked = False
+    return all_linked
 
 def lookup_ticket(project_id, key: str) -> dict | None:
     response = work_client.get_internal(f"/api/internal/projects/{project_id}/tickets/{key}/")

@@ -39,5 +39,6 @@ def github_webhook():
     if payload is None:
         return {"detail": "Invalid payload", "errors": None}, 400
 
-    handle_github_push(payload)
+    if not handle_github_push(payload):
+        return {"detail": "Failed to link one or more commits", "errors": None}, 502
     return {"status": "ok"}, 200
