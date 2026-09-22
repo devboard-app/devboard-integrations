@@ -1,5 +1,6 @@
 import logging
 import re
+import time
 from uuid import UUID
 
 import httpx
@@ -16,29 +17,55 @@ from app.redis_client import redis_client
 SYSTEM_ACTOR_ID = "00000000-0000-0000-0000-000000000000"
 
 logger = logging.getLogger(__name__)
+
+MAX_ATTEMPTS = 3
+RETRY_DELAY_SECONDS = [2, 4]  # between attempts 1->2 and 2->3
+
+
+def _post_with_retry(url: str, json_payload: dict, label: str) -> None:
+    """POST with retry on transient failures (timeouts, connection errors,
+    5xx). Runs on the background consumer, not a user-facing request, so the
+    delay only costs queue throughput -- never a client waiting on it. A 4xx
+    is the webhook rejecting the request itself (bad URL, bad payload) and
+    won't be fixed by retrying, so it fails immediately instead.
+    """
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            response = httpx.post(url, json=json_payload, timeout=3.0)
+            response.raise_for_status()
+            return
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code < 500:
+                logger.exception(f"{label} rejected the request, not retrying")
+                return
+            if attempt == MAX_ATTEMPTS:
+                logger.exception(f"{label} failed after {attempt} attempts")
+                return
+            logger.warning(f"{label} failed (attempt {attempt}, {e.response.status_code}), retrying")
+            time.sleep(RETRY_DELAY_SECONDS[attempt - 1])
+        except httpx.TransportError:
+            if attempt == MAX_ATTEMPTS:
+                logger.exception(f"{label} failed after {attempt} attempts")
+                return
+            logger.warning(f"{label} failed (attempt {attempt}), retrying")
+            time.sleep(RETRY_DELAY_SECONDS[attempt - 1])
+
+
 def send_discord_notification(team_id: UUID, event_type: str, message: str):
     integration = get_integration_by_team(team_id)
     if integration is None:
         return
-    
+
     if integration.discord_webhook_url is not None and integration.enabled_triggers.get("discord", {}).get(event_type, False):
-        try:
-            response = httpx.post(integration.discord_webhook_url, json={"content": message}, timeout=3.0)
-            response.raise_for_status()
-        except httpx.HTTPError:
-            logger.exception(f"Failed to send Discord notification for team {team_id}")
+        _post_with_retry(integration.discord_webhook_url, {"content": message}, f"Discord notification for team {team_id}")
 
 def send_slack_notification(team_id: UUID, event_type: str, text: str):
     integration = get_integration_by_team(team_id)
     if integration is None:
         return
-    
+
     if integration.slack_webhook_url is not None and integration.enabled_triggers.get("slack", {}).get(event_type, False):
-        try:
-            response = httpx.post(integration.slack_webhook_url, json={"text": text}, timeout=3.0)
-            response.raise_for_status()
-        except httpx.HTTPError:
-            logger.exception(f"Failed to send Slack notification for team {team_id}")
+        _post_with_retry(integration.slack_webhook_url, {"text": text}, f"Slack notification for team {team_id}")
 
 TICKET_KEY_PATTERN = re.compile(r"\b([A-Z][A-Z0-9]{1,9}-\d+)\b", re.IGNORECASE)
 
