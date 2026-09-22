@@ -14,6 +14,7 @@ CONSUMER = os.environ.get("CONSUMER_NAME", socket.gethostname())
 
 MAX_ATTEMPTS = 3
 RECLAIM_IDLE_MS = 60_000
+PENDING_SCAN_LIMIT = 5000  # must cover xautoclaim's max reclaim capacity (50 iterations * count=100)
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ def run():
 
             attempts = {
                 entry["message_id"]: int(entry["times_delivered"])
-                for entry in redis_client.xpending_range(STREAM, GROUP, min="-", max="+", count=100)
+                for entry in redis_client.xpending_range(STREAM, GROUP, min="-", max="+", count=PENDING_SCAN_LIMIT)
             } if claimed else {}
 
             results = redis_client.xreadgroup(GROUP, CONSUMER, {STREAM: ">"}, count=10, block=5000)

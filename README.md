@@ -171,5 +171,4 @@ alembic revision --autogenerate -m "message"
 
 ## Not done yet
 
-- **Retry counting looks at 100 pending messages.** Messages after that are not counted.
 - **One repo, one project.** A GitHub repo can link to only one project across all teams.
