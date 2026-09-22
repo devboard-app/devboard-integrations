@@ -60,3 +60,13 @@ def record_linked_commit(repo: str, commit_sha: str, ticket_id: UUID) -> bool:
     except IntegrityError:
         db.session.rollback()
         return False
+
+def delete_linked_commit(repo: str, commit_sha: str, ticket_id: UUID) -> None:
+    db.session.execute(
+        db.delete(LinkedCommit).where(
+            LinkedCommit.repo == repo,
+            LinkedCommit.commit_sha == commit_sha,
+            LinkedCommit.ticket_id == ticket_id,
+        )
+    )
+    db.session.commit()
