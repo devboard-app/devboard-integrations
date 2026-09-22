@@ -74,3 +74,18 @@ HANDLERS ={
     "sprint.started": handle_sprint_started,
     "sprint.completed": handle_sprint_completed,
 }
+
+# Published by devboard-work but not acted on here on purpose -- they're for
+# analytics. Anything NOT in this set and NOT in HANDLERS is unexpected
+# (typo, or a new event nobody wired up yet) and gets logged loudly instead
+# of silently dropped. See tests/test_event_coverage.py.
+IGNORED_EVENTS = {
+    "comment.deleted",
+    "comment.updated",
+    "label.applied",
+    "label.removed",
+    "ticket.created",
+    "ticket.deleted",
+    "ticket.sprint_added",
+    "ticket.sprint_removed",
+}
