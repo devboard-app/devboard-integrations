@@ -3,7 +3,7 @@ import time
 
 from app import create_app
 from app.consumer.dead_letter import record_failed_event
-from app.consumer.handlers import HANDLERS
+from app.consumer.handlers import HANDLERS, IGNORED_EVENTS
 from app.redis_client import redis_client
 
 STREAM = "devboard:events"
@@ -60,7 +60,10 @@ def run():
                 handler = HANDLERS.get(event_type)
 
                 if handler is None:
-                    logger.warning(f"No handler for event: {event_type}")
+                    if event_type in IGNORED_EVENTS:
+                        logger.info(f"Ignoring event on purpose: {event_type}")
+                    else:
+                        logger.error(f"No handler for event: {event_type} -- typo, or a new event not wired up")
                     redis_client.xack(STREAM, GROUP, message_id)
                     continue
                 if attempts.get(message_id, 1) > MAX_ATTEMPTS:
