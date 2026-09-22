@@ -5,8 +5,11 @@ from app.webhooks.services import send_discord_notification, send_slack_notifica
 
 
 def handle_ticket_assigned(data: dict) -> None:
+    recipient_id = data["recipient_id"]
+    if recipient_id == data.get("actor_id"):
+        return
     create_notification(
-        recipient_id=data["recipient_id"],
+        recipient_id=recipient_id,
         type="assignment",
         message=f"You have been assigned to ticket {data['ticket_key']}.",
         link=f"/teams/{data['team_id']}/projects/{data['project_id']}/tickets/{data['ticket_id']}",
@@ -14,7 +17,7 @@ def handle_ticket_assigned(data: dict) -> None:
 
 def handle_status_changed(data: dict) -> None:
     recipient_id = data.get("recipient_id")
-    if recipient_id is None:
+    if recipient_id is None or recipient_id == data.get("actor_id"):
         return
     create_notification(
         recipient_id=recipient_id,
