@@ -11,10 +11,8 @@ class Settings:
     REDIS_URL = f"redis://{os.environ['REDIS_HOST']}:6379/0"
     JWT_SECRET: str = os.environ["JWT_SECRET"]
     INTERNAL_API_KEY: str = os.environ["INTERNAL_API_KEY"]
-    EMAIL_SERVICE_URL: str = os.environ["EMAIL_SERVICE_URL"]
     DEVBOARD_WORK_URL: str = os.environ["DEVBOARD_WORK_URL"]
     GITHUB_WEBHOOK_SECRET: str = os.environ["GITHUB_WEBHOOK_SECRET"]
-    CORE_SERVICE_URL: str = os.environ["CORE_SERVICE_URL"]
 
 settings = Settings()
 
