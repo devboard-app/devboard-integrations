@@ -1,95 +1,97 @@
 # devboard-integrations
 
-Outbound integrations and notifications for DevBoard. It does three things:
+**Tells people what happened.** It sends Slack and Discord messages, shows in-app notifications, and links GitHub commits to tickets.
 
-- keeps per-team Slack/Discord webhook settings and GitHub repo links
-- receives GitHub push webhooks and links commits to tickets
-- consumes the `devboard:events` Redis stream and turns events into in-app notifications or Slack/Discord messages
+- **Port:** `8005`
+- **Stack:** Flask, SQLAlchemy, PostgreSQL, Redis Streams
+- **Two containers, one image:**
 
-Flask + SQLAlchemy + Postgres + Redis Streams. Port **8005**.
-
-## Two processes, one image
-
-The Dockerfile builds once and `docker-compose.yml` runs it twice:
-
-| container | command | role |
+| Container | Command | Job |
 |---|---|---|
-| `devboard-integrations` | `gunicorn wsgi:app` | REST API + GitHub webhook receiver |
-| `devboard-integrations-worker` | `python -m app.consumer.worker` | stream consumer |
+| `devboard-integrations` | `gunicorn wsgi:app` | REST API and GitHub webhook. |
+| `devboard-integrations-worker` | `python -m app.consumer.worker` | Reads the event stream. |
 
-They share `devboard-db` and `devboard-redis`. The worker calls `create_app()` too, but
-only to get a Flask app context — Flask-SQLAlchemy's `db.session` needs one, and outside
-a request nobody pushes it for you.
+---
 
-## Where it sits
+## Start here (about 5 minutes)
 
-```
-devboard-work ──publish──> devboard:events ──> integrations-worker ──> notifications
-                                          └──> analytics (separate consumer group)
+1. Open a terminal in `devboard-infra`.
+2. Run `setup.bat`. It creates the database, starts both containers and runs the migrations.
+3. Open `http://localhost:8005/api/notifications/`. It answers `401`, which means the service is up and wants a login.
 
-GitHub ──push webhook──> integrations ──lookup──> devboard-work
-                                      └──XADD──> devboard:events (ticket.commit_linked)
+Only want this service? Postgres and Redis must already be running. Then:
 
-integrations ──X-Service-Key──> devboard-work   (team role checks)
-```
-
-It has no user or team tables of its own. `require_team_admin` asks devboard-work on
-every request whether the caller is an owner/admin of the team.
-
-## Running it
-
-Everything is orchestrated from `devboard-infra`:
-
-```
-cd ..\devboard-infra
-setup.bat        # creates integrations_user + integrations_db, brings containers up
-migrate.bat      # option 4 for this service alone
-redeploy.bat     # rebuild after code changes
-```
-
-Standalone, if the shared Postgres and Redis are already up:
-
-```
+```bash
 docker compose up --build
-```
-
-Migrations are alembic:
-
-```
 alembic upgrade head
-alembic revision --autogenerate -m "..."
 ```
 
-## Configuration
+To change code later: `redeploy.bat` in `devboard-infra`, option `5`.
 
-Copy `.env.example` to `.env`. All values are required — `config.py` reads them with
-`os.environ[...]` and fails loudly at import if one is missing.
+---
 
-| var | notes |
+## What it does
+
+1. **Team settings** – each team saves a Slack webhook, a Discord webhook and linked GitHub repos.
+2. **Notifications** – an in-app inbox for each user.
+3. **Slack and Discord messages** – sent when a sprint starts or ends.
+4. **GitHub commit links** – a commit message with `DEV-12` links that commit to ticket `DEV-12`.
+
+---
+
+## How it fits
+
+```
+devboard-work ──> Redis stream (devboard:events) ──> integrations-worker ──> notifications
+                                                 │                        └──> Slack / Discord
+                                                 └──> analytics (its own reader)
+
+GitHub ──push webhook──> integrations ──> devboard-work (find the ticket)
+                                     └──> Redis stream (ticket.commit_linked)
+
+integrations ──X-Service-Key──> devboard-work   (is this user a team admin?)
+```
+
+This service has **no user or team tables**. Each time, it asks devboard-work whether the caller is an owner or admin of the team.
+
+---
+
+## Events it handles
+
+| Event | What happens |
 |---|---|
-| `DB_HOST` `DB_PORT` `DB_NAME` `DB_USER` `DB_PASSWORD` | compose overrides host/port to `devboard-db:5432` |
-| `REDIS_HOST` | compose overrides to `devboard-redis` |
-| `JWT_SECRET` | shared across all services, HS256, `sub` = user UUID |
-| `INTERNAL_API_KEY` | sent as `X-Service-Key` on service-to-service calls |
-| `DEVBOARD_WORK_URL` | team role checks and ticket lookups |
-| `GITHUB_WEBHOOK_SECRET` | HMAC secret for `X-Hub-Signature-256` |
-| `EMAIL_SERVICE_URL` `CORE_SERVICE_URL` | required but currently unused — see Known gaps |
+| `ticket.assigned` | In-app notification |
+| `ticket.status_changed` | In-app notification |
+| `comment.created` | In-app notification |
+| `comment.mentioned` | In-app notification |
+| `sprint.started` | Slack and Discord message |
+| `sprint.completed` | Slack and Discord message |
+
+All other events are acked and dropped on purpose. They are for analytics. So a typo in an event name fails **silently**.
+
+**A message is sent to Slack or Discord only if** the webhook URL is set **and** that trigger is `true`.
+
+### If a handler fails
+
+1. The message is not acked, so it stays pending.
+2. It is picked up again after 60 seconds.
+3. After **3 tries**, it goes into `failed_events` and is acked.
+
+---
 
 ## API
 
-### Integration settings
+### Team settings
 
-All of these need a JWT *and* owner/admin on the team.
+Needs a JWT **and** owner/admin role on the team.
 
-```
-GET    /api/integrations/<team_id>/
-POST   /api/integrations/<team_id>/
-PATCH  /api/integrations/<team_id>/
-POST   /api/integrations/<team_id>/repo-links/
-DELETE /api/integrations/<team_id>/repo-links/<repo_link_id>/
-```
+| Method | Path | What it does |
+|---|---|---|
+| `GET` `POST` `PATCH` | `/api/integrations/<team_id>/` | Read, create, update the settings. |
+| `POST` | `/api/integrations/<team_id>/repo-links/` | Link a GitHub repo to a project. Body: `project_id`, `github_repo`. |
+| `DELETE` | `/api/integrations/<team_id>/repo-links/<repo_link_id>/` | Remove a link. |
 
-`enabled_triggers` is a JSON switchboard, per provider and per event:
+`enabled_triggers` chooses which events go to which provider:
 
 ```json
 {
@@ -98,99 +100,77 @@ DELETE /api/integrations/<team_id>/repo-links/<repo_link_id>/
 }
 ```
 
-A message is sent only if the provider's URL is set **and** its trigger is true.
+**Webhook URL rules** (checked on save):
 
-Webhook URLs are validated on write: `https` only, host must be `hooks.slack.com` for
-Slack or `discord.com`/`discordapp.com` for Discord. This matters — without it a team
-admin could point the webhook at `devboard-auth` or a cloud metadata endpoint and have
-the service POST event payloads to it from inside the docker network.
+- `https` only.
+- Slack: host must be `hooks.slack.com`.
+- Discord: host must be `discord.com` or `discordapp.com`.
+- A bad URL returns `400`.
+
+This stops a team admin from pointing the webhook at an internal service.
 
 ### Notifications
 
-JWT only; ownership checked per row in the service layer.
+JWT only. You can only see and change your own.
 
-```
-GET    /api/notifications/
-PATCH  /api/notifications/read-all/
-PATCH  /api/notifications/<notification_id>/
-DELETE /api/notifications/<notification_id>/
-```
+| Method | Path | What it does |
+|---|---|---|
+| `GET` | `/api/notifications/` | Your inbox. Uses `limit` (default 20, max 100) and `offset`. |
+| `PATCH` | `/api/notifications/read-all/` | Mark all as read. |
+| `PATCH` | `/api/notifications/<notification_id>/` | Mark one as read. |
+| `DELETE` | `/api/notifications/<notification_id>/` | Delete one. |
 
 ### GitHub webhook
 
-```
-POST /api/webhooks/github/
-```
+`POST /api/webhooks/github/`
 
-Verifies `X-Hub-Signature-256` with `hmac.compare_digest`, ignores anything that isn't a
-`push`, then for each commit message pulls out ticket keys matching
-`\b([A-Z][A-Z0-9]{1,9}-\d+)\b`, looks each one up in devboard-work, and publishes
-`ticket.commit_linked` to the stream.
+1. Checks the `X-Hub-Signature-256` header with `GITHUB_WEBHOOK_SECRET`.
+2. Ignores everything except `push`.
+3. Finds ticket keys in each commit message (pattern like `DEV-12`).
+4. Asks devboard-work if the ticket exists.
+5. Publishes `ticket.commit_linked`.
 
-Two things worth knowing:
+Two details:
 
-- The event's `actor_id` is a fixed system UUID, not the commit author. Anyone can
-  `git commit --author`, so the author field is not an identity.
-- GitHub redelivers webhooks. Each redelivery produces a *new* Redis message id, so
-  analytics' id-based dedup would not catch it. `linked_commits` exists purely for this:
-  a unique constraint on `(repo, commit_sha, ticket_id)`, inserted before publishing.
-  The second delivery hits the constraint and skips.
+- The event's actor is a **fixed system id**, not the commit author. Anyone can fake a commit author.
+- GitHub sometimes sends the same webhook twice. The table `linked_commits` has a unique key on `(repo, commit_sha, ticket_id)`, so the second one is skipped.
 
-## The consumer
+---
 
-Reads `devboard:events` as consumer group `devboard-integrations-group`. Analytics reads
-the same stream under its own group, so both see every message independently.
+## Settings
 
-Per loop:
+Copy `.env.example` to `.env`. **All values are required.** The service crashes at start if one is missing.
 
-1. `xautoclaim` with `min_idle_time=60s`, up to 50 pages of 100, to pick up messages a
-   previous crash left stranded
-2. `xreadgroup(">")` for new messages, `count=10`, `block=5000`
-3. dispatch through `HANDLERS`
-
-Handled events:
-
-| event | result |
+| Variable | What it is |
 |---|---|
-| `ticket.assigned` | in-app notification |
-| `ticket.status_changed` | in-app notification |
-| `comment.created` | in-app notification |
-| `comment.mentioned` | in-app notification |
-| `sprint.started` | Slack + Discord |
-| `sprint.completed` | Slack + Discord |
+| `DB_HOST` `DB_PORT` `DB_NAME` `DB_USER` `DB_PASSWORD` | Database. Docker overrides host and port. |
+| `REDIS_HOST` | Docker overrides it to `devboard-redis`. |
+| `JWT_SECRET` | Same value in every service. |
+| `INTERNAL_API_KEY` | Sent as `X-Service-Key` to devboard-work. |
+| `DEVBOARD_WORK_URL` | Team role checks and ticket lookups. |
+| `GITHUB_WEBHOOK_SECRET` | Secret for the GitHub signature. |
 
-Everything else on the stream (`ticket.updated`, `label.*`, `ticket.epic_*`, …) has no
-handler, gets acked, and is dropped. That is intentional — those are analytics' business —
-but it also means a mistyped handler key is completely silent. That is how
-`comment.mention` vs `comment.mentioned` survived for a week.
-
-A handler that raises is logged and **not** acked, so the message stays pending and comes
-back on the next reclaim. After 3 delivery attempts it is written to `failed_events` and
-acked. In practice a permanently-broken message runs three times over about three minutes
-before it dead-letters.
+---
 
 ## Tables
 
-- `team_integrations` — one row per team; webhook URLs, `enabled_triggers`, `email_notifications`
-- `repo_links` — `github_repo` (unique) → project + team
-- `linked_commits` — idempotency ledger for commit linking; nothing reads it
-- `notifications` — the in-app inbox
-- `failed_events` — consumer dead-letter queue
+| Table | What is in it |
+|---|---|
+| `team_integrations` | One row per team: webhook URLs, `enabled_triggers`. |
+| `repo_links` | GitHub repo (unique) to project and team. |
+| `linked_commits` | Stops duplicate commit links. |
+| `notifications` | The in-app inbox. |
+| `failed_events` | Events that failed 3 times. |
 
-## Known gaps
+```bash
+alembic upgrade head
+alembic revision --autogenerate -m "message"
+```
 
-- **Email notifications are not wired up.** `email_notifications` is stored and returned
-  by the API but nothing reads it, and `EMAIL_SERVICE_URL` is unused.
-- **No pagination on `GET /api/notifications/`.** It returns every notification a user has
-  ever received, and `recipient_id` has no index.
-- **Validation errors return the wrong status.** `_validate_webhook_url` raises
-  `ValueError`, which the views map to 409 on create and 404 on update. A rejected webhook
-  URL should be a 400.
-- **`logging.basicConfig` is only called in the worker.** In the gunicorn process
-  `logger.info` goes nowhere (WARNING and above still reach stderr via `lastResort`).
-- **`CONSUMER` is a hardcoded name.** More than one worker replica would make both
-  processes share a pending list, which breaks reclaim. One replica only.
-- **The retry counter reads `xpending_range(count=100)`.** If the pending list is deeper
-  than 100, messages past that window never reach the dead-letter branch.
-- **`repo_links.github_repo` is globally unique**, so a repo can be linked to exactly one
-  project across all teams.
+---
+
+## Not done yet
+
+- **Only one worker.** The consumer name is fixed. Two workers would break retries.
+- **Retry counting looks at 100 pending messages.** Messages after that are not counted.
+- **One repo, one project.** A GitHub repo can link to only one project across all teams.
