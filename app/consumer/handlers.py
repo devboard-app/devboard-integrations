@@ -49,24 +49,24 @@ def handle_sprint_started(data: dict) -> None:
     send_discord_notification(
         team_id=UUID(data["team_id"]),
         event_type="sprint.started",
-        message=f"🚀 Sprint '{data["sprint_name"]}' has started!",
+        message=f"🚀 [{data["project_name"]}] Sprint '{data["sprint_name"]}' has started!",
     )
     send_slack_notification(
         team_id=UUID(data["team_id"]),
         event_type="sprint.started",
-        text=f"🚀 Sprint '{data["sprint_name"]}' has started!",
+        text=f"🚀 [{data["project_name"]}] Sprint '{data["sprint_name"]}' has started!",
     )
 
 def handle_sprint_completed(data: dict) -> None:
     send_discord_notification(
         team_id=UUID(data["team_id"]),
         event_type="sprint.completed",
-        message=f"✅ Sprint '{data["sprint_name"]}' has been completed!",
+        message=f"✅ [{data["project_name"]}] Sprint '{data["sprint_name"]}' has been completed!",
     )
     send_slack_notification(
         team_id=UUID(data["team_id"]),
         event_type="sprint.completed",
-        text=f"✅ Sprint '{data["sprint_name"]}' has been completed!",
+        text=f"✅ [{data["project_name"]}] Sprint '{data["sprint_name"]}' has been completed!",
     )
 
 HANDLERS ={
