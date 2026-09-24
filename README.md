@@ -124,6 +124,8 @@ JWT only. You can only see and change your own.
 
 `POST /api/webhooks/github/`
 
+Deliveries come from the DevBoard GitHub App, installed once on the GitHub account that owns the repos. The App's webhook URL points here and its webhook secret is `GITHUB_WEBHOOK_SECRET`. A repo starts feeding a project only after an admin links it (`repo-links`); pushes for unlinked repos are ignored. The App is a webhook relay only: DevBoard does not store installations or call the GitHub API.
+
 1. Checks the `X-Hub-Signature-256` header with `GITHUB_WEBHOOK_SECRET`.
 2. Ignores everything except `push`.
 3. Finds ticket keys in each commit message (pattern like `DEV-12`).
@@ -149,7 +151,7 @@ Copy `.env.example` to `.env`. **All values are required.** The service crashes 
 | `JWT_SECRET` | Same value in every service. |
 | `INTERNAL_API_KEY` | Sent as `X-Service-Key` to devboard-work. |
 | `DEVBOARD_WORK_URL` | Team role checks and ticket lookups. |
-| `GITHUB_WEBHOOK_SECRET` | Secret for the GitHub signature. |
+| `GITHUB_WEBHOOK_SECRET` | Webhook secret of the GitHub App. It must equal the secret set in the App's settings. |
 
 ---
 
