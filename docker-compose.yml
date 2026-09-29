@@ -15,7 +15,7 @@ services:
       DB_PORT: 5432
       REDIS_HOST: devboard-redis
     ports:
-      - "8005:8000"
+      - "18005:8000"
     networks:
       - devboard-ic-network
 

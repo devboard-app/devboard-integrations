@@ -2,7 +2,7 @@
 
 **Tells people what happened.** It sends Slack and Discord messages, shows in-app notifications, and links GitHub commits to tickets.
 
-- **Port:** `8005`
+- **Port:** `18005`
 - **Stack:** Flask, SQLAlchemy, PostgreSQL, Redis Streams
 - **Two containers, one image:**
 
@@ -17,7 +17,7 @@
 
 1. Open a terminal in `devboard-infra`.
 2. Run `setup.bat`. It creates the database, starts both containers and runs the migrations.
-3. Open `http://localhost:8005/api/notifications/`. It answers `401`, which means the service is up and wants a login.
+3. Open `http://localhost:18005/api/notifications/`. It answers `401`, which means the service is up and wants a login.
 
 Only want this service? Postgres and Redis must already be running. Then:
 
