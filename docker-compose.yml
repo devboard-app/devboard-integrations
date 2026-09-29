@@ -17,7 +17,7 @@ services:
     ports:
       - "8005:8000"
     networks:
-      - devboard-network
+      - devboard-ic-network
 
   devboard-integrations-worker:
     build:
@@ -35,8 +35,8 @@ services:
       REDIS_HOST: devboard-redis
     command: python -m app.consumer.worker
     networks:
-      - devboard-network
+      - devboard-ic-network
 networks:
-  devboard-network:
-    name: devboard-network
+  devboard-ic-network:
+    name: devboard-ic-network
     external: true
