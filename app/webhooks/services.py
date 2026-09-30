@@ -41,7 +41,9 @@ def _post_with_retry(url: str, json_payload: dict, label: str) -> None:
             if attempt == MAX_ATTEMPTS:
                 logger.exception(f"{label} failed after {attempt} attempts")
                 return
-            logger.warning(f"{label} failed (attempt {attempt}, {e.response.status_code}), retrying")
+            logger.warning(
+                f"{label} failed (attempt {attempt}, {e.response.status_code}), retrying"
+            )
             time.sleep(RETRY_DELAY_SECONDS[attempt - 1])
         except httpx.TransportError:
             if attempt == MAX_ATTEMPTS:
@@ -56,21 +58,37 @@ def send_discord_notification(team_id: UUID, event_type: str, message: str):
     if integration is None:
         return
 
-    if integration.discord_webhook_url is not None and integration.enabled_triggers.get("discord", {}).get(event_type, False):
-        _post_with_retry(integration.discord_webhook_url, {"content": message}, f"Discord notification for team {team_id}")
+    if integration.discord_webhook_url is not None and integration.enabled_triggers.get(
+        "discord", {}
+    ).get(event_type, False):
+        _post_with_retry(
+            integration.discord_webhook_url,
+            {"content": message},
+            f"Discord notification for team {team_id}",
+        )
+
 
 def send_slack_notification(team_id: UUID, event_type: str, text: str):
     integration = get_integration_by_team(team_id)
     if integration is None:
         return
 
-    if integration.slack_webhook_url is not None and integration.enabled_triggers.get("slack", {}).get(event_type, False):
-        _post_with_retry(integration.slack_webhook_url, {"text": text}, f"Slack notification for team {team_id}")
+    if integration.slack_webhook_url is not None and integration.enabled_triggers.get(
+        "slack", {}
+    ).get(event_type, False):
+        _post_with_retry(
+            integration.slack_webhook_url,
+            {"text": text},
+            f"Slack notification for team {team_id}",
+        )
+
 
 TICKET_KEY_PATTERN = re.compile(r"\b([A-Z][A-Z0-9]{1,9}-\d+)\b", re.IGNORECASE)
 
+
 def extract_ticket_keys(commit_message: str) -> set[str]:
-    return {key.upper() for key in TICKET_KEY_PATTERN.findall(commit_message)} 
+    return {key.upper() for key in TICKET_KEY_PATTERN.findall(commit_message)}
+
 
 def handle_github_push(payload: dict) -> bool:
     repo = payload["repository"]["full_name"]
@@ -90,38 +108,55 @@ def handle_github_push(payload: dict) -> bool:
                 if ticket is None:
                     continue
                 if not record_linked_commit(repo, commit["id"], UUID(ticket["id"])):
-                    logger.info(f"Commit {commit['id']} already linked to {key}, skipping")
+                    logger.info(
+                        f"Commit {commit['id']} already linked to {key}, skipping"
+                    )
                     continue
                 try:
-                    publish_commit_linked(ticket["id"], key, str(link.project_id), commit, repo)
+                    publish_commit_linked(
+                        ticket["id"], key, str(link.project_id), commit, repo
+                    )
                 except Exception:
-                    logger.exception(f"Failed to publish commit_linked for {commit['id']} / {key}, undoing link")
+                    logger.exception(
+                        f"Failed to publish commit_linked for {commit['id']} / {key}, undoing link"
+                    )
                     delete_linked_commit(repo, commit["id"], UUID(ticket["id"]))
                     all_linked = False
             except Exception:
-                logger.exception(f"Failed to link commit {commit["id"]} to {key}")
+                logger.exception(f"Failed to link commit {commit['id']} to {key}")
                 all_linked = False
     return all_linked
 
+
 def lookup_ticket(project_id, key: str) -> dict | None:
-    response = work_client.get_internal(f"/api/internal/projects/{project_id}/tickets/{key}/")
+    response = work_client.get_internal(
+        f"/api/internal/projects/{project_id}/tickets/{key}/"
+    )
     if response is None:
-        logger.warning(f"Work service unavailable looking up ticket {key} in project {project_id}")
+        logger.warning(
+            f"Work service unavailable looking up ticket {key} in project {project_id}"
+        )
         return None
     if response.status_code == 404:
         return None
     response.raise_for_status()
     return response.json()
 
-def publish_commit_linked(ticket_id: str, key: str, project_id: str, commit: dict, repo: str) -> None:
-    redis_client.xadd("devboard:events", {
-        "event": "ticket.commit_linked",
-        "actor_id": SYSTEM_ACTOR_ID,
-        "ticket_id": ticket_id,
-        "ticket_key": key,
-        "project_id": project_id,
-        "commit_sha": commit["id"],
-        "commit_url": commit["url"],
-        "commit_message": commit["message"],
-        "repo": repo,
-    })
+
+def publish_commit_linked(
+    ticket_id: str, key: str, project_id: str, commit: dict, repo: str
+) -> None:
+    redis_client.xadd(
+        "devboard:events",
+        {
+            "event": "ticket.commit_linked",
+            "actor_id": SYSTEM_ACTOR_ID,
+            "ticket_id": ticket_id,
+            "ticket_key": key,
+            "project_id": project_id,
+            "commit_sha": commit["id"],
+            "commit_url": commit["url"],
+            "commit_message": commit["message"],
+            "repo": repo,
+        },
+    )

@@ -10,6 +10,7 @@ notifications_bp = Blueprint("notifications", __name__)
 DEFAULT_LIMIT = 20
 MAX_LIMIT = 100
 
+
 @notifications_bp.get("/api/notifications/")
 @jwt_required
 def get_notifications(user_id: UUID):
@@ -21,14 +22,19 @@ def get_notifications(user_id: UUID):
     if offset < 0:
         errors["offset"] = ["Must not be negative."]
     if errors:
-        return jsonify({"detail": next(iter(errors.values()))[0], "errors": errors}), 400
+        return jsonify(
+            {"detail": next(iter(errors.values()))[0], "errors": errors}
+        ), 400
     notifications, total = services.get_user_notifications(user_id, limit, offset)
-    return jsonify({
-        "count": total,
-        "limit": limit,
-        "offset": offset,
-        "results": [n.to_dict() for n in notifications],
-        })
+    return jsonify(
+        {
+            "count": total,
+            "limit": limit,
+            "offset": offset,
+            "results": [n.to_dict() for n in notifications],
+        }
+    )
+
 
 @notifications_bp.patch("/api/notifications/read-all/")
 @jwt_required
@@ -36,14 +42,16 @@ def mark_all_as_read(user_id: UUID):
     services.mark_all_notifications_read(user_id)
     return jsonify({"message": "All notifications marked as read"})
 
+
 @notifications_bp.patch("/api/notifications/<uuid:notification_id>/")
 @jwt_required
 def mark_as_read(user_id: UUID, notification_id: UUID):
     notification = services.mark_notification_read(notification_id, user_id)
     return jsonify(notification.to_dict())
 
+
 @notifications_bp.delete("/api/notifications/<uuid:notification_id>/")
 @jwt_required
 def delete_notification(user_id: UUID, notification_id: UUID):
     services.delete_user_notification(notification_id, user_id)
-    return "",204
+    return "", 204

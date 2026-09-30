@@ -20,6 +20,7 @@ ALLOWED_HOSTS = {
     "discord": {"discord.com", "discordapp.com"},
 }
 
+
 def _validate_webhook_url(url: str | None, provider: str) -> None:
     if url is None:
         return
@@ -27,11 +28,13 @@ def _validate_webhook_url(url: str | None, provider: str) -> None:
     if parsed.scheme != "https" or parsed.hostname not in ALLOWED_HOSTS[provider]:
         raise InvalidWebhookUrlException()
 
+
 def get_integration_or_404(team_id: UUID) -> TeamIntegration:
     integration = repository.get_integration_by_team(team_id)
     if integration is None:
         raise IntegrationNotFoundException()
     return integration
+
 
 def create_integration(team_id: UUID, data: dict) -> TeamIntegration:
     existing = repository.get_integration_by_team(team_id)
@@ -40,6 +43,7 @@ def create_integration(team_id: UUID, data: dict) -> TeamIntegration:
     _validate_webhook_url(data.get("slack_webhook_url"), "slack")
     _validate_webhook_url(data.get("discord_webhook_url"), "discord")
     return repository.create_integration(team_id, data)
+
 
 def update_integration(team_id: UUID, data: dict) -> TeamIntegration:
     integration = repository.get_integration_by_team(team_id)
@@ -51,8 +55,11 @@ def update_integration(team_id: UUID, data: dict) -> TeamIntegration:
 
 
 def _project_belongs_to_team(team_id: UUID, project_id: UUID) -> bool:
-    response = work_client.get_internal(f"/api/internal/teams/{team_id}/projects/{project_id}/")
+    response = work_client.get_internal(
+        f"/api/internal/teams/{team_id}/projects/{project_id}/"
+    )
     return response is not None and response.status_code == 200
+
 
 def create_repo_link(team_id: UUID, project_id: UUID, github_repo: str) -> RepoLink:
     if not _project_belongs_to_team(team_id, project_id):
@@ -64,6 +71,7 @@ def create_repo_link(team_id: UUID, project_id: UUID, github_repo: str) -> RepoL
         return repository.create_repo_link(team_id, project_id, github_repo)
     except IntegrityError:
         raise RepoLinkAlreadyExistsException()
+
 
 def delete_repo_link(team_id: UUID, repo_link_id: UUID) -> None:
     link = repository.get_repo_link_by_id(repo_link_id)

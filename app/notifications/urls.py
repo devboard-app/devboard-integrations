@@ -1,1 +1,1 @@
-from app.notifications.views import notifications_bp #noqa
+from app.notifications.views import notifications_bp  # noqa

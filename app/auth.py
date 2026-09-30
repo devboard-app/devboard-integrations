@@ -19,6 +19,7 @@ def get_current_user_id() -> UUID | None:
     except (JWTError, KeyError, ValueError):
         return None
 
+
 def jwt_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -26,19 +27,26 @@ def jwt_required(f):
         if user_id is None:
             return jsonify({"detail": "Unauthorized", "errors": None}), 401
         return f(user_id, *args, **kwargs)
+
     return decorated
+
 
 def require_team_admin(f):
     @wraps(f)
     def decorated(user_id, *args, **kwargs):
-        team_id = kwargs.get('team_id')
-        response = work_client.get_internal(f"/api/internal/teams/{team_id}/members/{user_id}/")
+        team_id = kwargs.get("team_id")
+        response = work_client.get_internal(
+            f"/api/internal/teams/{team_id}/members/{user_id}/"
+        )
         if response is None:
-            return jsonify({"detail": "Authorization service unavailable", "errors": None}), 503
+            return jsonify(
+                {"detail": "Authorization service unavailable", "errors": None}
+            ), 503
         if response.status_code != 200:
             return jsonify({"detail": "Forbidden", "errors": None}), 403
         role = response.json().get("role")
         if role not in ("owner", "admin"):
             return jsonify({"detail": "Forbidden", "errors": None}), 403
         return f(user_id, *args, **kwargs)
+
     return decorated

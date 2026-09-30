@@ -15,6 +15,7 @@ def handle_ticket_assigned(data: dict) -> None:
         link=f"/teams/{data['team_id']}/projects/{data['project_id']}/tickets/{data['ticket_id']}",
     )
 
+
 def handle_status_changed(data: dict) -> None:
     recipient_id = data.get("recipient_id")
     if recipient_id is None or recipient_id == data.get("actor_id"):
@@ -25,6 +26,7 @@ def handle_status_changed(data: dict) -> None:
         message=f"Ticket {data['ticket_key']} status has changed.",
         link=f"/teams/{data['team_id']}/projects/{data['project_id']}/tickets/{data['ticket_id']}",
     )
+
 
 def handle_comment_created(data: dict) -> None:
     recipient_id = data.get("recipient_id")
@@ -37,6 +39,7 @@ def handle_comment_created(data: dict) -> None:
         link=f"/teams/{data['team_id']}/projects/{data['project_id']}/tickets/{data['ticket_id']}",
     )
 
+
 def handle_mention(data: dict) -> None:
     create_notification(
         recipient_id=data["recipient_id"],
@@ -45,31 +48,34 @@ def handle_mention(data: dict) -> None:
         link=f"/teams/{data['team_id']}/projects/{data['project_id']}/tickets/{data['ticket_id']}",
     )
 
+
 def handle_sprint_started(data: dict) -> None:
     send_discord_notification(
         team_id=UUID(data["team_id"]),
         event_type="sprint.started",
-        message=f"🚀 [{data["project_name"]}] Sprint '{data["sprint_name"]}' has started!",
+        message=f"🚀 [{data['project_name']}] Sprint '{data['sprint_name']}' has started!",
     )
     send_slack_notification(
         team_id=UUID(data["team_id"]),
         event_type="sprint.started",
-        text=f"🚀 [{data["project_name"]}] Sprint '{data["sprint_name"]}' has started!",
+        text=f"🚀 [{data['project_name']}] Sprint '{data['sprint_name']}' has started!",
     )
+
 
 def handle_sprint_completed(data: dict) -> None:
     send_discord_notification(
         team_id=UUID(data["team_id"]),
         event_type="sprint.completed",
-        message=f"✅ [{data["project_name"]}] Sprint '{data["sprint_name"]}' has been completed!",
+        message=f"✅ [{data['project_name']}] Sprint '{data['sprint_name']}' has been completed!",
     )
     send_slack_notification(
         team_id=UUID(data["team_id"]),
         event_type="sprint.completed",
-        text=f"✅ [{data["project_name"]}] Sprint '{data["sprint_name"]}' has been completed!",
+        text=f"✅ [{data['project_name']}] Sprint '{data['sprint_name']}' has been completed!",
     )
 
-HANDLERS ={
+
+HANDLERS = {
     "ticket.assigned": handle_ticket_assigned,
     "ticket.status_changed": handle_status_changed,
     "comment.created": handle_comment_created,

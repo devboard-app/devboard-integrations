@@ -13,14 +13,18 @@ class Notification(db.Model):
     message = db.Column(db.Text, nullable=False)
     read = db.Column(db.Boolean, nullable=False, default=False)
     link = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
 
     def to_dict(self):
         return {
-        "id": str(self.id),
-        "type": self.type,
-        "message": self.message,
-        "read": self.read,
-        "link": self.link,
-        "created_at": self.created_at.isoformat(),
+            "id": str(self.id),
+            "type": self.type,
+            "message": self.message,
+            "read": self.read,
+            "link": self.link,
+            "created_at": self.created_at.isoformat(),
         }

@@ -10,10 +10,13 @@ from app.webhooks.services import handle_github_push
 
 logger = logging.getLogger(__name__)
 
+
 def _verify_signature(raw_body: bytes, signature_header: str | None) -> bool:
     if not signature_header or not signature_header.startswith("sha256="):
         return False
-    expected = hmac.new(settings.GITHUB_WEBHOOK_SECRET.encode(), raw_body, hashlib.sha256).hexdigest()
+    expected = hmac.new(
+        settings.GITHUB_WEBHOOK_SECRET.encode(), raw_body, hashlib.sha256
+    ).hexdigest()
     received = signature_header.removeprefix("sha256=")
     return hmac.compare_digest(expected, received)
 
@@ -30,7 +33,7 @@ def github_webhook():
             f"event={request.headers.get('X-GitHub-Event')}, "
             f"signature_present={signature is not None})"
         )
-        return {"detail":"Invalid signature", "errors": None}, 403
+        return {"detail": "Invalid signature", "errors": None}, 403
 
     event_type = request.headers.get("X-GitHub-Event")
     if event_type != "push":

@@ -11,7 +11,9 @@ from app.webhooks.urls import webhooks_bp
 
 
 def create_app():
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s"
+    )
     app = Flask(__name__)
     app.config["SQLALCHEMY_DATABASE_URI"] = settings.DATABASE_URL
 
@@ -21,7 +23,7 @@ def create_app():
     app.register_blueprint(notifications_bp)
     app.register_blueprint(integrations_bp)
     app.register_blueprint(webhooks_bp)
-    
+
     @app.get("/health")
     def health():
         return {"status": "ok"}

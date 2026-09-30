@@ -14,5 +14,5 @@ class Settings:
     DEVBOARD_WORK_URL: str = os.environ["DEVBOARD_WORK_URL"]
     GITHUB_WEBHOOK_SECRET: str = os.environ["GITHUB_WEBHOOK_SECRET"]
 
-settings = Settings()
 
+settings = Settings()

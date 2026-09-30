@@ -20,6 +20,7 @@ def get_integration_view(user_id: UUID, team_id: UUID):
     integration = get_integration_or_404(team_id)
     return jsonify(integration.to_dict()), 200
 
+
 @integrations_bp.post("/<uuid:team_id>/")
 @jwt_required
 @require_team_admin
@@ -27,6 +28,7 @@ def create_integration_view(user_id: UUID, team_id: UUID):
     data = request.get_json() or {}
     integration = create_integration(team_id, data)
     return jsonify(integration.to_dict()), 201
+
 
 @integrations_bp.patch("/<uuid:team_id>/")
 @jwt_required
@@ -51,21 +53,31 @@ def create_repo_link_view(user_id: UUID, team_id: UUID):
     if not github_repo:
         missing["github_repo"] = ["This field is required."]
     if missing:
-        return jsonify({"detail": next(iter(missing.values()))[0], "errors": missing}), 400
+        return jsonify(
+            {"detail": next(iter(missing.values()))[0], "errors": missing}
+        ), 400
 
     try:
         project_uuid = UUID(project_id)
     except ValueError:
-        return jsonify({"detail": "project_id must be a valid UUID", "errors":{"project_id": ["Must be a valid UUID."]}}), 400
+        return jsonify(
+            {
+                "detail": "project_id must be a valid UUID",
+                "errors": {"project_id": ["Must be a valid UUID."]},
+            }
+        ), 400
 
-    link = create_repo_link(team_id, project_uuid, github_repo) # type: ignore
+    link = create_repo_link(team_id, project_uuid, github_repo)  # type: ignore
 
-    return jsonify({
-        "id": str(link.id),
-        "team_id": str(link.team_id),
-        "project_id": str(link.project_id),
-        "github_repo": link.github_repo,
-    }), 201
+    return jsonify(
+        {
+            "id": str(link.id),
+            "team_id": str(link.team_id),
+            "project_id": str(link.project_id),
+            "github_repo": link.github_repo,
+        }
+    ), 201
+
 
 @integrations_bp.delete("/<uuid:team_id>/repo-links/<uuid:repo_link_id>/")
 @jwt_required
